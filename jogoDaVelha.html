@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <link rel="stylesheet" href="jogoDaVelha.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Jogo da Velha</h1>
+        <p class="subtitle">Projeto de Tomada de Decisão com Algoritmos </p>
+
+        <div class="placar">
+            <div>Jogador: <span id="score-player">0</span></div>
+            <div>Empates: <span id="score-ties">0</span></div>
+            <div>Bot: <span id="score-cpu">0</span></div>
+        </div>
+
+        <div id="status">Sua vez!</div>
+
+        <div id="board"></div>
+
+        <div class="controls">
+            <button id="reset-btn">Reiniciar</button>
+            <button id="clear-scores-btn">Zerar Placar</button>
+        </div>
+    </div>
+
+    <script src="jogoDaVelha.js"></script>
+</body>
+</html>
