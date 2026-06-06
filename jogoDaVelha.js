@@ -8,8 +8,62 @@ const mainConfig = {
 		boardState.subscribe(() => {
 			turnManager.setNewTurn();
 		}, "turnChanged");
-		cellManager.initBoard();
-    ui.setFunction();
+		
+		boardState.subscribe(() => {
+			cellManager.initBoard();
+		}, "init");
+		
+		boardState.subscribe(() => {
+			cellManager.disableLoserCells();
+		}, "finished");
+		boardState.subscribe(turnManager.finishedGame, "finished");
+		boardState.subscribe(turnManager.startGame, "init");
+    ui.setListener();
+    
+    decisionEngine.subscribe(helperFunctions.manageClick,boardState.boardElement);
+    
+    boardState.subscribe(() => {
+  	ui.updateStatus("Sorteando quem começa...");
+    }, "init");
+
+  	boardState.subscribe(() => {
+	ui.updateStatus("Sua vez!");
+}, "playerTurn");
+
+		boardState.subscribe(() => {
+		ui.updateStatus("Pensando...");
+	}, "cpuTurn");
+
+	boardState.subscribe(() => {
+	ui.updateStatus("Você venceu!");
+}, "playerWin");
+
+	boardState.subscribe(() => {
+	ui.updateStatus("A CPU venceu!");
+}, "cpuWin");
+
+	boardState.subscribe(() => {
+	ui.updateStatus("Empate!");
+}, "tie");
+  boardState.subscribe(() => {
+  	ui.setBodyGradient("playerVictory");
+  }, "playerWin");
+  boardState.subscribe(() => {
+  	ui.setBodyGradient("CPUVictory");
+  }, "cpuWin");
+  boardState.subscribe(() => {
+  	ui.setBodyGradient("draw");
+  }, "tie");
+  boardState.subscribe(() => {
+  	ui.setBodyGradient();
+  }, "init");
+  themeManager.init();
+  boardState.update("init");
+	},
+	reset(){
+		boardState.boardArray =[0, 0, 0, 0, 0, 0, 0, 0, 0];
+		gameRules.lastWinPattern = null;
+		boardState.update("init");
 	},
 };
 
@@ -23,14 +77,58 @@ const ui = {
 	scoreCpu: document.getElementById('score-cpu'),
 
 	resetBtn: document.getElementById('reset-btn'),
-	clearScoresBtn: document.getElementById('clear-scores-btn'),
-	setFunction(){
+	themeBtn: document.getElementById('theme-btn'),
+	updateStatus(message){
+	this.statusElement.innerText = message;
+},
+  setBodyGradient(classe){
+  	document.body.className = classe;
+  },
+	setListener(){
 		decisionEngine.subscribe(helperFunctions.manageClick, this.resetBtn);
 		this.resetBtn.addEventListener("click", () => {
-		cellManager.initBoard();
-		boardState.boardArray =[0, 0, 0, 0, 0, 0, 0, 0, 0];
+		mainConfig.reset();
 	});
 	},
+};
+
+const themeManager = {
+	themes: ["default", "amoled", "light"],
+	index: 0,
+
+	init() {
+		const saved = localStorage.getItem("theme");
+
+		if(saved){
+			this.index = this.themes.indexOf(saved);
+			if(this.index === -1) this.index = 0;
+			this.apply();
+		}
+
+		ui.themeBtn.addEventListener("click", () => {
+				this.nextTheme();
+			});
+	},
+
+	nextTheme() {
+		this.index++;
+
+		if(this.index >= this.themes.length){
+			this.index = 0;
+		}
+
+		this.apply();
+	},
+
+	apply() {
+		const theme = this.themes[this.index];
+		if(theme === "default"){
+			document.documentElement.removeAttribute("data-theme");
+		}else{
+			document.documentElement.setAttribute("data-theme", theme);
+		}
+		localStorage.setItem("theme", theme);
+	}
 };
 
 const scoreManager = {
@@ -45,15 +143,30 @@ const scoreManager = {
 	},
 };
 const turnManager = {
-	turn: 1,
+	activeTurn: 0,
 	async setNewTurn(){
-		if(this.turn === 1){
-			this.turn = 2;
-			await decisionEngine.makeDecision();
-		}else if (this.turn === 2){
-			this.turn = 1;
-		}
+	if(this.activeTurn === 1){
+		this.activeTurn = 2;
+		boardState.update("cpuTurn");
+		await decisionEngine.makeDecision();
+	}else if (this.activeTurn === 2){
+		this.activeTurn = 1;
+		boardState.update("playerTurn");
+	}
+},
+	finishedGame: () => {
+		turnManager.activeTurn = 0;
 	},
+	startGame : async () => {
+	turnManager.activeTurn = Math.random() < 0.5 ? 1 : 2;
+
+	if(turnManager.activeTurn === 1){
+		boardState.update("playerTurn");
+	}else{
+		boardState.update("cpuTurn");
+		await decisionEngine.makeDecision();
+	}
+},
 };
 const boardState = {
   boardElement: document.getElementById('board'),
@@ -82,10 +195,11 @@ const boardState = {
   		if (sub.listener === listener){
   			sub.funcao();
   		}
-  		console.log(listener);
   		});
+  		// init
   		// moveMade
   		// turnChanged
+  		// finished
   },
 };
 
@@ -103,6 +217,7 @@ const cellManager = {
   },
 
   handleCellClick(event) {
+  	if(turnManager.activeTurn !== 1) return;
     const cell = event.currentTarget;
     const index = Number(cell.dataset.index);
 
@@ -113,7 +228,6 @@ const cellManager = {
   initBoard() {
     boardState.boardElement.innerHTML = '';
     this.cellsArray = [];
-    decisionEngine.subscribe(helperFunctions.manageClick,boardState.boardElement);
     for (let i = 0; i < 9; i++) {
       const newCell = this.createCell(i);
       this.cellsArray[i] = newCell;
@@ -127,12 +241,22 @@ const cellManager = {
   		
   		if (!cell) return;
     if (state === 1) {
-      cell.innerText = 'X';
+      cell.classList.add("fas", "fa-xmark");
     } else if (state === 2) {
-      cell.innerText = 'O';
+      cell.classList.add("fas", "fa-robot");
     }
 
     if (state !== 0) cell.setAttribute('moved', '');
+  	}
+  },
+  disableLoserCells(){
+  	for(let i = 0; i < this.cellsArray.length; i++){
+  		const cell = this.cellsArray[i];
+  		if(gameRules.lastWinPattern !== null){
+  		if(!gameRules.lastWinPattern.includes(i)) cell.classList.add("disabled");
+  		} else {
+  			cell.classList.add("disabled");
+  		}
   	}
   }
 };
@@ -147,26 +271,35 @@ const gameRules = {
     [0, 4, 8],
     [2, 4, 6],
   ],
+  lastWinPattern: null,
 
   checkWinner(boardArray, player) {
-    return this.WIN_PATTERNS.some(pattern =>
-      pattern.every(index => boardArray[index] === player)
-    );
+    this.lastWinPattern = this.WIN_PATTERNS.find(pattern =>
+	  pattern.every(index => boardArray[index] === player)
+	);
+    return this.lastWinPattern ? 1 : 0;
   },
 
   getWinner(boardArray) {
-    if (this.checkWinner(boardArray, 1)){
-    boardState.update("win");
-    return 1;
-    } else if (this.checkWinner(boardArray, 2)) {
-    boardState.update("win");
-    return 2;
-    }
-    return 0;
-  },
+	if (this.checkWinner(boardArray, 1)){
+		boardState.update("playerWin");
+		boardState.update("finished");
+		return 1;
+
+	} else if (this.checkWinner(boardArray, 2)) {
+		boardState.update("cpuWin");
+		boardState.update("finished");
+		return 2;
+
+	} else if (this.isTie(boardArray)) {
+		boardState.update("tie");
+		boardState.update("finished");
+		return 0;
+	}
+},
 
   isTie(boardArray) {
-    return !boardArray.includes(0) && this.getWinner(boardArray) === 0;
+    return !boardArray.includes(0);
   },
 };
 
