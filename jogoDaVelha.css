@@ -1,4 +1,95 @@
-/* Reset Básico */
+:root {
+    --bg-color: #000000;
+    --glow-color: #29104a;
+    
+    --blue-glow: #102d4a;
+
+    --red-glow: #3a1020;
+
+    --draw-glow: #184b3d;
+
+    --bg-gradient: radial-gradient(
+        ellipse 60% 90% at 50% 55%,
+        var(--glow-color) 0%,
+        var(--bg-color) 80%
+    );
+
+    --bg-gradient-blue: radial-gradient(
+        ellipse 60% 90% at 50% 55%,
+        var(--blue-glow) 0%,
+        var(--bg-color) 80%
+    );
+
+    --bg-gradient-red: radial-gradient(
+        ellipse 60% 90% at 50% 55%,
+        var(--red-glow) 0%,
+        var(--bg-color) 80%
+    );
+
+    --bg-gradient-draw: radial-gradient(
+        ellipse 60% 90% at 50% 55%,
+        var(--draw-glow) 0%,
+        var(--bg-color) 80%
+    );
+
+    --sc-color: #29292e;
+    --sc-color-hover: #323238;
+    --border: rgba(78,79,80,0.594);
+
+    --txt-color: #e1e1e6;
+    --txt-muted: #8d8d99;
+
+    --accent-color: #4c566a;
+    --accent-hover: #5e6b87;
+
+    --red-color: #f43f5e;
+    --blue-color: #0ea5e9;
+    --draw-color: #fbbf24;
+
+    --red-bg: color-mix(in srgb, var(--sc-color) 50%, var(--red-color));
+    --blue-bg: color-mix(in srgb, var(--sc-color) 50%, var(--blue-color));
+    --draw-bg: color-mix(in srgb, var(--sc-color) 50%, var(--draw-color));
+
+    --board-bg: #202024;
+}
+[data-theme="amoled"] {
+    --bg-color: #000000;
+
+    --glow-color: #2a0f4f;
+
+    --red-glow: #5d0f24;
+    --blue-glow: #0d305a;
+    --draw-glow: #0a4131;
+
+    --sc-color: #121212;
+    --sc-color-hover: #1e1e1e;
+
+    --border: rgba(78,79,80,0.469);
+
+    --board-bg: #0a0a0a;
+}
+[data-theme="light"] {
+    --bg-color: #f0f0f5;
+
+    --glow-color: #d6c8ed;
+
+    --red-glow: #ffd0d7;
+    --blue-glow: #cce8ff;
+    --draw-glow: #b3ffde;
+
+    --sc-color: #ffffff;
+    --sc-color-hover: #e1e1e6;
+
+    --border: rgba(158,159,159,0.446);
+
+    --txt-color: #121214;
+    --txt-muted: #6b6b72;
+
+    --accent-color: #2468ba;
+    --accent-hover: #1e5699;
+
+    --board-bg: #e1e1e6;
+}
 * {
     margin: 0;
     padding: 0;
@@ -7,12 +98,40 @@
 }
 
 body {
-    background-color: #121214;
-    color: #e1e1e6;
+    background-color: var(--bg-color);
+    background-image: var(--bg-gradient);
+    color: var(--txt-color);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    background-attachment: fixed;
+    background-size: 100% 100%;
+    animation: pulsarGradiente 8s ease-in-out infinite alternate;
+    transition: background-color 0.3s, color 0.3s, background-image 1s;
+}
+body.playerVictory {
+	background-image: var(--bg-gradient-red);
+}
+body.CPUVictory {
+	background-image: var(--bg-gradient-blue);
+}
+body.draw {
+	background-image: var(--bg-gradient-draw);
+}
+@keyframes pulsarGradiente {
+    0% {
+        background-size: 100% 100%;
+        background-position: 50% 50%;
+    }
+    50% {
+        background-size: 100% 100%; 
+        background-position: 50% 48%; 
+    }
+    100% {
+        background-size: 100% 100%;
+        background-position: 50% 52%;
+    }
 }
 
 .container {
@@ -28,18 +147,22 @@ h1 {
 }
 
 .subtitle {
-    color: #8d8d99;
+    color: var(--txt-muted);
     font-size: 0.9rem;
     margin-bottom: 20px;
 }
 
 .placar {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
     margin-bottom: 15px;
-    background: #202024;
+    background: color-mix(in srgb, var(--board-bg) 50%, transparent);
+    backdrop-filter: blur(8px);
+    border: 0.5px solid var(--border);
     padding: 10px;
-    border-radius: 8px;
+    opacity: 0.9;
+    border-radius: 12px;
+    transition: background-color 0.3s;
 }
 
 #status {
@@ -47,7 +170,6 @@ h1 {
     font-weight: 600;
 }
 
-/* O Tabuleiro em Grid */
 #board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -57,48 +179,58 @@ h1 {
     aspect-ratio: 1 / 1;
 }
 
-/* Estilo das Células Neutras */
 .cell {
-    background-color: #29292e;
-    border-radius: 8px;
+    background: color-mix(in srgb, var(--sc-color) 50%, transparent);
+    backdrop-filter: blur(8px);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
     cursor: pointer;
+    color: var(--txt-color);
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 2rem;
-    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    transition: opacity 1s, background 0.4s;
 }
 
 .cell:hover {
-    background-color: #323238;
+    background-color: var(--sc-color-hover);
+    border-radius: 20px;
+}
+.cell.fa-xmark{
+  background: color-mix(in srgb, var(--red-bg) 50%, transparent);
+  color: var(--red-color); 
+}
+.cell.fa-robot{
+	background: color-mix(in srgb, var(--blue-bg) 50%, transparent);
+	color: var(--blue-color); 
+}
+.cell.disabled{
+	opacity: 0.3;
 }
 
-/* Estilos de cores para quando os ícones entrarem */
-.cell .fa-xmark { color: #0ea5e9; }
-.cell .fa-robot { color: #f43f5e; }
-
-/* Botões */
 .controles {
     display: flex;
     gap: 10px;
 }
 
-button {
+.reset-btn {
     flex: 1;
-    padding: 10px;
+    padding: 8px 12px;
     border: none;
-    border-radius: 6px;
-    background-color: #4c566a;
-    color: #fff;
+    border-radius: 8px;
+    background-color: var(--accent-color);
+    color: var(--txt-color);
     cursor: pointer;
     font-weight: 600;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    letter-spacing: 2px;
+    transition: background-color 0.2s;
 }
 
-button:hover {
-    background-color: #5e6b87;
-}
-
-#clear-scores-btn {
-    background-color: #323238;
-    color: #8d8d99;
+.reset-btn:hover {
+    background-color: var(--accent-hover);
 }
