@@ -1,66 +1,71 @@
 const mainConfig = {
 	init(){
-		boardState.subscribe(cellManager.updateCells, "moveMade");
+		// moveMade subs
 		boardState.subscribe(() => {
 			gameRules.getWinner(boardState.boardArray);
+			cellManager.updateCells();
 		}, "moveMade");
-		// boardState.subscribe(showGameOver, "win");
+		
+		// turnChanged subs
 		boardState.subscribe(() => {
 			turnManager.setNewTurn();
 		}, "turnChanged");
 		
+		// init subs
 		boardState.subscribe(() => {
 			cellManager.initBoard();
+			ui.updateStatus("Sorteando quem começa...");
+			turnManager.startGame();
+			ui.setBodyGradient();
 		}, "init");
 		
+		// finished subs
 		boardState.subscribe(() => {
 			cellManager.disableLoserCells();
+			turnManager.finishedGame();
 		}, "finished");
-		boardState.subscribe(turnManager.finishedGame, "finished");
-		boardState.subscribe(turnManager.startGame, "init");
-    ui.setListener();
+	
     
-    decisionEngine.subscribe(helperFunctions.manageClick,boardState.boardElement);
+	  // turn subs
+	  	boardState.subscribe(() => {
+	   	ui.updateStatus("Sua vez!");
+	   	helperFunctions.manageClick("PlayerTurn", boardState.boardElement);
+	   	helperFunctions.manageClick("PlayerTurn", ui.resetBtn);
+	}, "playerTurn");
+	
+			boardState.subscribe(() => {
+			ui.updateStatus("Pensando...");
+			helperFunctions.manageClick("cpuTurn", boardState.boardElement);
+			helperFunctions.manageClick("cpuTurn", ui.resetBtn);
+		}, "cpuTurn");
     
-    boardState.subscribe(() => {
-  	ui.updateStatus("Sorteando quem começa...");
-    }, "init");
-
-  	boardState.subscribe(() => {
-	ui.updateStatus("Sua vez!");
-}, "playerTurn");
-
+	  // playerWin subs
 		boardState.subscribe(() => {
-		ui.updateStatus("Pensando...");
-	}, "cpuTurn");
-
-	boardState.subscribe(() => {
-	ui.updateStatus("Você venceu!");
-}, "playerWin");
-
-	boardState.subscribe(() => {
-	ui.updateStatus("A CPU venceu!");
-}, "cpuWin");
-
-	boardState.subscribe(() => {
-	ui.updateStatus("Empate!");
-}, "tie");
-  boardState.subscribe(() => {
-  	ui.setBodyGradient("playerVictory");
-  }, "playerWin");
-  boardState.subscribe(() => {
-  	ui.setBodyGradient("CPUVictory");
-  }, "cpuWin");
-  boardState.subscribe(() => {
-  	ui.setBodyGradient("draw");
-  }, "tie");
-  boardState.subscribe(() => {
-  	ui.setBodyGradient();
-  }, "init");
-  themeManager.init();
-  boardState.update("init");
+		ui.updateStatus("Você venceu!");
+		scoreManager.incrementScore("player");
+		ui.setBodyGradient("playerVictory");
+	}, "playerWin");
+	  
+	  // cpuWin subs
+		boardState.subscribe(() => {
+		ui.updateStatus("A CPU venceu!");
+		ui.setBodyGradient("CPUVictory");
+		scoreManager.incrementScore("cpu");
+	}, "cpuWin");
+	  
+	  // tie subs
+		boardState.subscribe(() => {
+		ui.updateStatus("Empate!");
+		ui.setBodyGradient("draw");
+		scoreManager.incrementScore("tie");
+	}, "tie");
+	  
+	  themeManager.init();
+	  ui.setListener();
+	  boardState.update("init");
 	},
 	reset(){
+		boardState.resetCounter++;
 		boardState.boardArray =[0, 0, 0, 0, 0, 0, 0, 0, 0];
 		gameRules.lastWinPattern = null;
 		boardState.update("init");
@@ -85,7 +90,6 @@ const ui = {
   	document.body.className = classe;
   },
 	setListener(){
-		decisionEngine.subscribe(helperFunctions.manageClick, this.resetBtn);
 		this.resetBtn.addEventListener("click", () => {
 		mainConfig.reset();
 	});
@@ -138,10 +142,15 @@ const scoreManager = {
 		cpu: 0,
 	},
 
-	setNewScore(newValue) {
-		// atualizar score
+	incrementScore(type) {
+		this.values[type]++;
+		
+		if (type === "player") ui.scorePlayer.innerText = this.values.player;
+		if (type === "cpu") ui.scoreCpu.innerText = this.values.cpu;
+		if (type === "tie") ui.scoreTies.innerText = this.values.tie;
 	},
 };
+
 const turnManager = {
 	activeTurn: 0,
 	async setNewTurn(){
@@ -159,7 +168,10 @@ const turnManager = {
 	},
 	startGame : async () => {
 	turnManager.activeTurn = Math.random() < 0.5 ? 1 : 2;
-
+	const currentReset = boardState.resetCounter;
+  await helperFunctions.delay(400);
+  if(currentReset !== boardState.resetCounter) return;
+  //obs: sei que nao é top 10 melhores correcoes, isso é provisorio
 	if(turnManager.activeTurn === 1){
 		boardState.update("playerTurn");
 	}else{
@@ -172,7 +184,7 @@ const boardState = {
   boardElement: document.getElementById('board'),
   boardArray: [0, 0, 0, 0, 0, 0, 0, 0, 0], // 0 vazio, 1 player, 2 cpu
   currentTurn: 1,
-  isPlaying: true,
+  resetCounter: 0,
 
   setMove(index, value) {
     if (this.boardArray[index] !== 0)
@@ -304,22 +316,14 @@ const gameRules = {
 };
 
 const decisionEngine = {
-  subs: [],
-  subscribe(funcao, element) {
-  	this.subs.push({funcao, element});
-  },
-  
-  notify(isThinking) {
-    this.subs.forEach(sub => sub.funcao(isThinking, sub.element));
-  },
-
+ 
   async makeDecision() {
     if (!boardState.boardArray.includes(0)) return;
-
-    this.notify(true);
+    const currentReset = boardState.resetCounter;
     await helperFunctions.delay(1000);
+    if(currentReset !== boardState.resetCounter) return;
+      //obs: sei que nao é top 10 melhores correcoes, isso é provisorio
     this.makeRandomMove();
-    this.notify(false);
   },
 	aiCanWin() {
 
@@ -357,8 +361,8 @@ applyTempClass(element, className, callback){
 RNG(chance = 50){
 return Math.random() * 100 < chance;
 },
-manageClick(isThinking, element){
-	if(isThinking){
+manageClick(activeTurn, element){
+	if(activeTurn === "cpuTurn"){
 		element.style.pointerEvents = "none";
 	} else {
 		element.style.pointerEvents = "auto";
