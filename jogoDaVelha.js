@@ -2,8 +2,8 @@ const mainConfig = {
 	init(){
 		// moveMade subs
 		boardState.subscribe(() => {
-			gameRules.getWinner(boardState.boardArray);
 			cellManager.updateCells();
+			gameRules.getWinner(boardState.boardArray);
 		}, "moveMade");
 		
 		// turnChanged subs
@@ -23,22 +23,33 @@ const mainConfig = {
 		boardState.subscribe(() => {
 			cellManager.disableLoserCells();
 			turnManager.finishedGame();
+	   	helperFunctions.manageClick(false, boardState.boardElement);
+	   	helperFunctions.manageClick(false, ui.resetBtn);
 		}, "finished");
 	
     
 	  // turn subs
 	  	boardState.subscribe(() => {
 	   	ui.updateStatus("Sua vez!");
-	   	helperFunctions.manageClick("PlayerTurn", boardState.boardElement);
-	   	helperFunctions.manageClick("PlayerTurn", ui.resetBtn);
+	   	helperFunctions.manageClick(false, boardState.boardElement);
+	   	helperFunctions.manageClick(false, ui.resetBtn);
 	}, "playerTurn");
 	
 			boardState.subscribe(() => {
 			ui.updateStatus("Pensando...");
-			helperFunctions.manageClick("cpuTurn", boardState.boardElement);
-			helperFunctions.manageClick("cpuTurn", ui.resetBtn);
+			helperFunctions.manageClick(true, boardState.boardElement);
+			helperFunctions.manageClick(true, ui.resetBtn);
+			decisionEngine.makeDecision();
 		}, "cpuTurn");
-    
+		
+    // canWins
+    boardState.subscribe(() => {
+			ui.updateStatus("KKKKK que facil");
+		}, "cpuCanWin");
+    boardState.subscribe(() => {
+			ui.updateStatus("@%$%@!");
+		}, "playerCanWin");
+		
 	  // playerWin subs
 		boardState.subscribe(() => {
 		ui.updateStatus("Você venceu!");
@@ -157,7 +168,6 @@ const turnManager = {
 	if(this.activeTurn === 1){
 		this.activeTurn = 2;
 		boardState.update("cpuTurn");
-		await decisionEngine.makeDecision();
 	}else if (this.activeTurn === 2){
 		this.activeTurn = 1;
 		boardState.update("playerTurn");
@@ -176,7 +186,6 @@ const turnManager = {
 		boardState.update("playerTurn");
 	}else{
 		boardState.update("cpuTurn");
-		await decisionEngine.makeDecision();
 	}
 },
 };
@@ -315,33 +324,94 @@ const gameRules = {
   },
 };
 
+
+// CPUManager
+const miniMaxEngine = {
+	//implementar dps
+};
+
 const decisionEngine = {
  
   async makeDecision() {
     if (!boardState.boardArray.includes(0)) return;
     const currentReset = boardState.resetCounter;
+    
+    let move = this.aiCanWin();
+    let attack = move !== -1;
+    let defense = false;
+    
+    if (move === -1) {
+      move = this.playerCanWin();
+      defense = move !== -1;
+    }
+    if (move === -1){
+    	move = this.getPriorityMove();
+    }
+    if (attack) {
+      boardState.update("cpuCanWin");
+    } else if (defense) {
+      boardState.update("playerCanWin");
+    }
+    
     await helperFunctions.delay(1000);
     if(currentReset !== boardState.resetCounter) return;
-      //obs: sei que nao é top 10 melhores correcoes, isso é provisorio
-    this.makeRandomMove();
+    
+    if (move === -1) {
+      this.makeRandomMove();
+    } else {
+      boardState.setMove(move, 2);
+    }
   },
-	aiCanWin() {
 
-	},
+  findWinningMove(playerValue) {
+    for (let pattern of gameRules.WIN_PATTERNS) {
+      const cells = pattern.map(index => boardState.boardArray[index]);
+      const playerCount = cells.filter(val => val === playerValue).length;
+      const emptyCount = cells.filter(val => val === 0).length;
+      
+      if (playerCount === 2 && emptyCount === 1) {
+        const emptyIndexOnPattern = cells.indexOf(0);
+        return pattern[emptyIndexOnPattern];
+      }
+    }
+    return -1;
+  },
+  aiCanWin() {
+    return this.findWinningMove(2);
+  },
+  playerCanWin() {
+    return this.findWinningMove(1);
+  },
+  
+  getPriorityMove() {
+    if (boardState.boardArray[4] === 0) return 4;
 
-	playerCanWin() {
+    const corners = [0, 2, 6, 8];
+    const cornersEmpty = [];
 
-	},
+    for (let i = 0; i < corners.length; i++) {
+        const value = corners[i];
 
-	makeRandomMove() {
-	let index;
-  if (!boardState.boardArray.includes(0)) return;
-  do {
-  index = Math.floor(Math.random() * 9);
-  } while (boardState.boardArray[index] !== 0);
-  boardState.setMove(index, 2);
-	},
+        if (boardState.boardArray[value] === 0) {
+            cornersEmpty.push(value);
+        }
+    }
+
+    if (cornersEmpty.length === 0) return -1;
+
+    const randomIndex = Math.floor(Math.random() * cornersEmpty.length);
+
+    return cornersEmpty[randomIndex];
+},
+  makeRandomMove() {
+    let index;
+    do {
+      index = Math.floor(Math.random() * 9);
+    } while (boardState.boardArray[index] !== 0);
+    boardState.setMove(index, 2);
+  },
 };
+
 const helperFunctions = {
 delay(ms){
 	return new Promise(resolve =>
@@ -361,10 +431,10 @@ applyTempClass(element, className, callback){
 RNG(chance = 50){
 return Math.random() * 100 < chance;
 },
-manageClick(activeTurn, element){
-	if(activeTurn === "cpuTurn"){
+manageClick(blockClick, element){
+	if(blockClick){
 		element.style.pointerEvents = "none";
-	} else {
+	} else if (!blockClick) {
 		element.style.pointerEvents = "auto";
 }
 },
