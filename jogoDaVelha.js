@@ -24,7 +24,6 @@ const mainConfig = {
 			cellManager.disableLoserCells();
 			turnManager.finishedGame();
 	   	helperFunctions.manageClick(false, boardState.boardElement);
-	   	helperFunctions.manageClick(false, ui.resetBtn);
 		}, "finished");
 	
     
@@ -32,14 +31,12 @@ const mainConfig = {
 	  	boardState.subscribe(() => {
 	   	ui.updateStatus("Sua vez!");
 	   	helperFunctions.manageClick(false, boardState.boardElement);
-	   	helperFunctions.manageClick(false, ui.resetBtn);
 	}, "playerTurn");
 	
 			boardState.subscribe(() => {
 			ui.updateStatus("Pensando...");
 			helperFunctions.manageClick(true, boardState.boardElement);
-			helperFunctions.manageClick(true, ui.resetBtn);
-			decisionEngine.makeDecision();
+				decisionEngine.makeDecision(difficultyManager.difficulty);
 		}, "cpuTurn");
 		
     // canWins
@@ -93,7 +90,7 @@ const ui = {
 	scoreCpu: document.getElementById('score-cpu'),
 
 	resetBtn: document.getElementById('reset-btn'),
-	themeBtn: document.getElementById('theme-btn'),
+	configBtn: document.getElementById('config-btn'),
 	updateStatus(message){
 	this.statusElement.innerText = message;
 },
@@ -106,7 +103,16 @@ const ui = {
 	});
 	},
 };
-
+const configHub = {
+	
+};
+const difficultyManager = {
+	difficulty: 1, // 0: random, 1: decisionEngine, 2: miniMaxEngine
+	setDifficulty(newValue){
+		if(newValue >= 3) return;
+		this.difficulty = newValue;
+	},
+};
 const themeManager = {
 	themes: ["default", "amoled", "light"],
 	index: 0,
@@ -120,9 +126,9 @@ const themeManager = {
 			this.apply();
 		}
 
-		ui.themeBtn.addEventListener("click", () => {
-				this.nextTheme();
-			});
+		//ui.themeBtn.addEventListener("click", () => {
+		//		this.nextTheme();
+		//	});
 	},
 
 	nextTheme() {
@@ -332,7 +338,7 @@ const miniMaxEngine = {
 
 const decisionEngine = {
  
-  async makeDecision() {
+  async makeDecision(difficulty) {
     if (!boardState.boardArray.includes(0)) return;
     const currentReset = boardState.resetCounter;
     
@@ -356,9 +362,9 @@ const decisionEngine = {
     await helperFunctions.delay(1000);
     if(currentReset !== boardState.resetCounter) return;
     
-    if (move === -1) {
+    if (move === -1 || difficulty === 0) {
       this.makeRandomMove();
-    } else {
+    } else if(difficulty !== 0){
       boardState.setMove(move, 2);
     }
   },
