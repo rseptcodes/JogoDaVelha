@@ -118,7 +118,7 @@ body {
     position: relative;
     overflow: hidden;
 
-    transition: color 1s;
+    transition: background-color 1s, color 1s;
 }
 
 body::after {
@@ -130,11 +130,13 @@ body::after {
     background-image: var(--bg-gradient);
     background-size: 100% 100%;
     background-attachment: fixed;
+    animation: glowPulse 6s ease-in-out infinite;
 
     pointer-events: none;
     z-index: -1;
 
     transition: background-image 1s;
+    will-change: transform, opacity;
 }
 
 body.playerVictory::after {
@@ -151,13 +153,22 @@ body.draw::after {
 body.draw::after {
 	background-image: var(--bg-gradient-draw);
 }
-/*
-@keyframes gradientFlow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+@keyframes glowPulse {
+    0% {
+        opacity: .8;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    100% {
+        opacity: .8;
+        transform: scale(1);
+    }
 }
-*/
 .container {
     text-align: center;
     width: 100%;
@@ -187,7 +198,7 @@ h1 {
     padding: 10px;
     opacity: 0.9;
     border-radius: 16px;
-    transition: background-color 0.3s;
+    transition: background-color 0.5s;
 }
 
 #status {
@@ -218,6 +229,7 @@ h1 {
     font-size: 2rem;
     -webkit-tap-highlight-color: transparent;
     outline: none;
+    will-change: transform, opacity;
     transition: opacity 1s, background 0.4s;
 }
 
@@ -261,11 +273,4 @@ h1 {
 
 .reset-btn:hover {
     background-color: var(--accent-hover);
-}
-
-/* provisorio */
-.cell,
-.placar,
-.reset-btn {
-    will-change: transform, opacity;
 }
