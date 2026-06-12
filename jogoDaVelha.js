@@ -3,7 +3,7 @@ const mainConfig = {
 		// moveMade subs
 		boardState.subscribe(() => {
 			cellManager.updateCells();
-			gameRules.getWinner(boardState.boardArray);
+			gameRules.getWinner(boardState.boardArray, true);
 		}, "moveMade");
 		
 		// turnChanged subs
@@ -14,6 +14,7 @@ const mainConfig = {
 		// init subs
 		boardState.subscribe(() => {
 			cellManager.initBoard();
+			//configHub.init();
 			ui.updateStatus("Sorteando quem começa...");
 			turnManager.startGame();
 			ui.setBodyGradient();
@@ -89,8 +90,8 @@ const ui = {
 	scoreTies: document.getElementById('score-ties'),
 	scoreCpu: document.getElementById('score-cpu'),
 
-	resetBtn: document.getElementById('reset-btn'),
-	configBtn: document.getElementById('config-btn'),
+	resetBtn: document.getElementById('resetBtn'),
+	configBtn: document.getElementById('configBtn'),
 	updateStatus(message){
 	this.statusElement.innerText = message;
 },
@@ -103,11 +104,10 @@ const ui = {
 	});
 	},
 };
-const configHub = {
-	
-};
+
+
 const difficultyManager = {
-	difficulty: 1, // 0: random, 1: decisionEngine, 2: miniMaxEngine
+	difficulty: 2, // 0: random, 1: decisionEngine, 2: miniMaxEngine
 	setDifficulty(newValue){
 		if(newValue >= 3) return;
 		this.difficulty = newValue;
@@ -307,22 +307,29 @@ const gameRules = {
     return this.lastWinPattern ? 1 : 0;
   },
 
-  getWinner(boardArray) {
+  getWinner(boardArray, isUpdating) {
 	if (this.checkWinner(boardArray, 1)){
+		if(isUpdating){
 		boardState.update("playerWin");
 		boardState.update("finished");
+		}
 		return 1;
 
 	} else if (this.checkWinner(boardArray, 2)) {
+		if(isUpdating){
 		boardState.update("cpuWin");
 		boardState.update("finished");
+		}
 		return 2;
 
 	} else if (this.isTie(boardArray)) {
+		if(isUpdating){
 		boardState.update("tie");
 		boardState.update("finished");
+		}
 		return 0;
 	}
+	return null;
 },
 
   isTie(boardArray) {
@@ -333,7 +340,76 @@ const gameRules = {
 
 // CPUManager
 const miniMaxEngine = {
-	//implementar dps
+	scoreTable: {
+		2: 10, // cpu
+		1: -10, // player
+		0: 0, // tie
+	},
+	getTerminalState(board) {
+  const WIN_PATTERNS = gameRules.WIN_PATTERNS;
+  for (const pattern of WIN_PATTERNS) {
+    const a = pattern[0];
+    const b = pattern[1];
+    const c = pattern[2];
+
+    if (board[a] !== 0 &&
+        board[a] === board[b] &&
+        board[b] === board[c]) {
+      return board[a]; // 1 ou 2
+    }
+  }
+    if (!board.includes(0)) return 0;
+  return null; // jogo continua
+},
+  miniMax(boardCopy, isMaximizing, depth){
+  	let result = this.getTerminalState(boardCopy);
+  	if (result === 2) return this.scoreTable[result] - depth; 
+		if (result === 1) return this.scoreTable[result] + depth;
+		if (result === 0) return 0;
+		
+  	if (result !== null) return this.scoreTable[result];
+  	
+    if (isMaximizing){
+    	let bestScore = -Infinity;
+    	for(let i = 0; i < boardCopy.length; i++){
+    		if(boardCopy[i] === 0){
+    			boardCopy[i] = 2;
+    			let score = miniMaxEngine.miniMax(boardCopy, false, depth + 1);
+    			boardCopy[i] = 0;
+    			bestScore = Math.max(score, bestScore);
+    		} // verifica se ta vazio
+    	} // loop central do for
+    		return bestScore;
+    } else {
+    	let bestScore = Infinity;
+    	for(let i = 0; i < boardCopy.length; i++){
+    		if(boardCopy[i] === 0){
+    			boardCopy[i] = 1;
+    			let score = miniMaxEngine.miniMax(boardCopy, true, depth + 1);
+    			boardCopy[i] = 0;
+    			bestScore = Math.min(score, bestScore);
+    			}
+    }
+    return bestScore;
+  }
+  },
+  getBestMove(board, depth){
+  	let bestScore = -Infinity
+  	let boardCopy = [...board];
+  	let bestMove;
+  	for(let i = 0; i < boardCopy.length; i++){
+  		if(boardCopy[i] === 0){
+    			boardCopy[i] = 2;
+    			let score = miniMaxEngine.miniMax(boardCopy, false, depth + 1);
+    			boardCopy[i] = 0;
+  		if(score > bestScore){
+    				bestScore = score;
+    				bestMove = i;
+    			}
+  	}
+  }
+  return bestMove;
+  }
 };
 
 const decisionEngine = {
@@ -364,8 +440,11 @@ const decisionEngine = {
     
     if (move === -1 || difficulty === 0) {
       this.makeRandomMove();
-    } else if(difficulty !== 0){
+    } else if(difficulty === 1){
       boardState.setMove(move, 2);
+    } else {
+    	move = miniMaxEngine.getBestMove(boardState.boardArray, 0);
+    	boardState.setMove(move, 2);
     }
   },
 
