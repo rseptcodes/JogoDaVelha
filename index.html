@@ -28,9 +28,55 @@
         <div id="board"></div>
 
         <div class="controls">
-            <button class ="reset-btn" id="resetBtn">RESET</button>
-            <button class ="reset-btn" id="configBtn">CONFIG</button>
+            <button class ="controls-btn fas fa-arrow-rotate-left" id="resetBtn"></button>
+            <i id="difficultyIcon" class="controls-icn"></i>
+            <button class ="controls-btn fas fa-gear" id="configBtn"></button>
         </div>
+        <div id="settings-overlay" class="settings-overlay hidden">
+  <div class="settings-panel">
+    <h2 class="settings-title">Configurações</h2>
+
+    <div class="settings-section">
+      <h3 class="section-title">Tema</h3>
+      <div class="options-group" id="theme-group">
+        <input type="radio" id="theme-light" name="theme" value="light" class="sr-only">
+        <label for="theme-light" class="option-card theme-card">Claro</label>
+
+        <input type="radio" id="theme-dark" name="theme" value="dark" class="sr-only" checked>
+        <label for="theme-dark" class="option-card theme-card">Escuro</label>
+
+        <input type="radio" id="theme-amoled" name="theme" value="amoled" class="sr-only">
+        <label for="theme-amoled" class="option-card theme-card">AMOLED</label>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3 class="section-title">Nível da IA</h3>
+      <div class="options-group" id="difficulty-group">
+        <input type="radio" id="diff-easy" name="difficulty" value="0" class="sr-only">
+        <label for="diff-easy" class="option-card diff-card">
+          <span class="card-title">Fácil</span>
+          <span class="card-subtitle">Aleatório</span>
+        </label>
+
+        <input type="radio" id="diff-medium" name="difficulty" value="1" class="sr-only" checked>
+        <label for="diff-medium" class="option-card diff-card">
+          <span class="card-title">Médio</span>
+          <span class="card-subtitle">Padrões</span>
+        </label>
+
+        <input type="radio" id="diff-impossible" name="difficulty" value="2" class="sr-only">
+        <label for="diff-impossible" class="option-card diff-card">
+          <span class="card-title">Impossível</span>
+          <span class="card-subtitle">Minimax</span>
+        </label>
+      </div>
+    </div>
+
+    <button id="close-settings" class="controls-btn">Fechar</button>
+  </div>
+</div>
+
     </div>
 
     <script src="jogoDaVelha.js"></script>
