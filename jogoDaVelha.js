@@ -1,18 +1,18 @@
 const mainConfig = {
 	init(){
 		// moveMade subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 			cellManager.updateCells();
 			gameRules.getWinner(boardState.boardArray, true);
 		}, "moveMade");
 		
 		// turnChanged subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 			turnManager.setNewTurn();
 		}, "turnChanged");
 		
 		// init subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 			cellManager.initBoard();
 			//configHub.init();
 			ui.updateStatus("Sorteando quem começa...");
@@ -21,7 +21,7 @@ const mainConfig = {
 		}, "init");
 		
 		// finished subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 			cellManager.disableLoserCells();
 			turnManager.finishedGame();
 	   	helperFunctions.manageClick(false, boardState.boardElement);
@@ -29,56 +29,90 @@ const mainConfig = {
 	
     
 	  // turn subs
-	  	boardState.subscribe(() => {
+	  	eventBus.subscribe(() => {
 	   	ui.updateStatus("Sua vez!");
 	   	helperFunctions.manageClick(false, boardState.boardElement);
 	}, "playerTurn");
 	
-			boardState.subscribe(() => {
+			eventBus.subscribe(() => {
 			ui.updateStatus("Pensando...");
 			helperFunctions.manageClick(true, boardState.boardElement);
 				decisionEngine.makeDecision(difficultyManager.difficulty);
 		}, "cpuTurn");
 		
     // canWins
-    boardState.subscribe(() => {
+    eventBus.subscribe(() => {
 			ui.updateStatus("KKKKK que facil");
 		}, "cpuCanWin");
-    boardState.subscribe(() => {
+    eventBus.subscribe(() => {
 			ui.updateStatus("@%$%@!");
 		}, "playerCanWin");
 		
 	  // playerWin subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 		ui.updateStatus("Você venceu!");
 		scoreManager.incrementScore("player");
 		ui.setBodyGradient("playerVictory");
 	}, "playerWin");
 	  
 	  // cpuWin subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 		ui.updateStatus("A CPU venceu!");
 		ui.setBodyGradient("CPUVictory");
 		scoreManager.incrementScore("cpu");
 	}, "cpuWin");
 	  
 	  // tie subs
-		boardState.subscribe(() => {
+		eventBus.subscribe(() => {
 		ui.updateStatus("Empate!");
 		ui.setBodyGradient("draw");
 		scoreManager.incrementScore("tie");
 	}, "tie");
 	  
+	  // themeChanged subs
+	  eventBus.subscribe((data) => {
+		themeManager.changeTheme(data);
+	}, "themeChanged");
+	
+	  // difficultyChanged subs
+	  eventBus.subscribe((data) => {
+    difficultyManager.setDifficulty(data);
+    ui.updateDifficultyIcon(Number(data));
+    this.reset();
+}, "difficultyChanged");
+	
 	  themeManager.init();
+	  difficultyManager.init();
 	  ui.setListener();
-	  boardState.update("init");
+	  ui.updateDifficultyIcon(difficultyManager.difficulty);
+	  configHub.init();
+	  configHub.syncUI();
+	  eventBus.update("init");
 	},
 	reset(){
 		boardState.resetCounter++;
 		boardState.boardArray =[0, 0, 0, 0, 0, 0, 0, 0, 0];
 		gameRules.lastWinPattern = null;
-		boardState.update("init");
+		eventBus.update("init");
 	},
+};
+const eventBus = {
+	subs: [],
+  subscribe(funcao, listener, data){
+  	this.subs.push({funcao, listener, data});
+  },
+  unsubscribe(funcao, listener){
+   this.subs = this.subs.filter(
+    n => !(n.funcao === funcao && n.listener === listener)
+  );
+},
+  update(listener, data){
+  	this.subs.forEach((sub) => {
+  		if (sub.listener === listener){
+  				sub.funcao(data);
+  		}
+  		});
+  },
 };
 
 const ui = {
@@ -91,7 +125,9 @@ const ui = {
 	scoreCpu: document.getElementById('score-cpu'),
 
 	resetBtn: document.getElementById('resetBtn'),
+	icon: document.getElementById("difficultyIcon"),
 	configBtn: document.getElementById('configBtn'),
+	
 	updateStatus(message){
 	this.statusElement.innerText = message;
 },
@@ -102,54 +138,107 @@ const ui = {
 		this.resetBtn.addEventListener("click", () => {
 		mainConfig.reset();
 	});
+		this.configBtn.addEventListener("click", () => {
+		configHub.toggleVisibility();
+	});
 	},
+	updateDifficultyIcon(level){
+  const icons = {
+    0: ["fa-solid", "fa-dice"],
+    1: ["fa-solid", "fa-brain"],
+    2: ["fa-solid", "fa-chess-queen"]
+  };
+
+  this.icon.className = "controls-icn";
+
+  if(icons[level]){
+    this.icon.classList.add(...icons[level]);
+  }
+}
+};
+const configHub = {
+    isVisible: false,
+    dom: {},
+
+    init() {
+        this.dom.overlay = document.getElementById('settings-overlay');
+        this.dom.closeBtn = document.getElementById('close-settings');
+        this.dom.themeRadios = document.querySelectorAll('input[name="theme"]');
+        this.dom.difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+
+        this.bindEvents();
+    },
+
+    bindEvents() {
+        this.dom.closeBtn.addEventListener('click', () => this.toggleVisibility());
+
+        this.dom.overlay.addEventListener('click', (e) => {
+            if (e.target === this.dom.overlay) this.toggleVisibility();
+        });
+
+        this.dom.themeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => eventBus.update("themeChanged",e.target.value));
+        });
+
+        this.dom.difficultyRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => eventBus.update("difficultyChanged",e.target.value));
+        });
+    },
+
+    toggleVisibility() {
+        this.isVisible = !this.isVisible;
+        
+        if (this.isVisible) {
+            this.dom.overlay.classList.remove('hidden');
+        } else {
+            this.dom.overlay.classList.add('hidden');
+        }
+    },
+    syncUI() {
+    const theme = localStorage.getItem("pref-theme");
+    const difficulty = localStorage.getItem("pref-difficulty");
+
+    const themeRadio = document.querySelector(
+    `input[name="theme"][value="${theme}"]`
+  );
+
+    const difficultyRadio = document.querySelector(
+    `input[name="difficulty"][value="${difficulty}"]`
+  );
+
+    if (themeRadio) themeRadio.checked = true;
+    if (difficultyRadio) difficultyRadio.checked = true;
+}
 };
 
 
 const difficultyManager = {
 	difficulty: 2, // 0: random, 1: decisionEngine, 2: miniMaxEngine
+	init(){
+		const saved = (localStorage.getItem("pref-difficulty"));
+		if(saved){
+			this.setDifficulty(saved);
+		}
+	},
 	setDifficulty(newValue){
+		newValue = Number(newValue);
 		if(newValue >= 3) return;
 		this.difficulty = newValue;
+		localStorage.setItem('pref-difficulty', newValue);
 	},
 };
 const themeManager = {
-	themes: ["default", "amoled", "light"],
-	index: 0,
-
 	init() {
-		const saved = localStorage.getItem("theme");
-
+		const saved = localStorage.getItem("pref-theme");
 		if(saved){
-			this.index = this.themes.indexOf(saved);
-			if(this.index === -1) this.index = 0;
-			this.apply();
+			this.changeTheme(saved);
 		}
-
-		//ui.themeBtn.addEventListener("click", () => {
-		//		this.nextTheme();
-		//	});
 	},
-
-	nextTheme() {
-		this.index++;
-
-		if(this.index >= this.themes.length){
-			this.index = 0;
-		}
-
-		this.apply();
+		changeTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        console.log(theme);
+        localStorage.setItem('pref-theme', theme);
 	},
-
-	apply() {
-		const theme = this.themes[this.index];
-		if(theme === "default"){
-			document.documentElement.removeAttribute("data-theme");
-		}else{
-			document.documentElement.setAttribute("data-theme", theme);
-		}
-		localStorage.setItem("theme", theme);
-	}
 };
 
 const scoreManager = {
@@ -173,10 +262,10 @@ const turnManager = {
 	async setNewTurn(){
 	if(this.activeTurn === 1){
 		this.activeTurn = 2;
-		boardState.update("cpuTurn");
+		eventBus.update("cpuTurn");
 	}else if (this.activeTurn === 2){
 		this.activeTurn = 1;
-		boardState.update("playerTurn");
+		eventBus.update("playerTurn");
 	}
 },
 	finishedGame: () => {
@@ -189,9 +278,9 @@ const turnManager = {
   if(currentReset !== boardState.resetCounter) return;
   //obs: sei que nao é top 10 melhores correcoes, isso é provisorio
 	if(turnManager.activeTurn === 1){
-		boardState.update("playerTurn");
+		eventBus.update("playerTurn");
 	}else{
-		boardState.update("cpuTurn");
+		eventBus.update("cpuTurn");
 	}
 },
 };
@@ -206,27 +295,9 @@ const boardState = {
     return false;
 
     this.boardArray[index] = value;
-    this.update("moveMade");
-    this.update("turnChanged");
+    eventBus.update("moveMade");
+    eventBus.update("turnChanged");
     return true;
-  },
-  subs: [],
-  subscribe(funcao, listener){
-  	this.subs.push({funcao, listener});
-  },
-  unsubscribe(funcao, listener){
-  	this.subs = this.subs.filter(n => n.funcao !== funcao && n.listener !== listener);
-  },
-  update(listener){
-  	this.subs.forEach((sub) => {
-  		if (sub.listener === listener){
-  			sub.funcao();
-  		}
-  		});
-  		// init
-  		// moveMade
-  		// turnChanged
-  		// finished
   },
 };
 
@@ -310,22 +381,22 @@ const gameRules = {
   getWinner(boardArray, isUpdating) {
 	if (this.checkWinner(boardArray, 1)){
 		if(isUpdating){
-		boardState.update("playerWin");
-		boardState.update("finished");
+		eventBus.update("playerWin");
+		eventBus.update("finished");
 		}
 		return 1;
 
 	} else if (this.checkWinner(boardArray, 2)) {
 		if(isUpdating){
-		boardState.update("cpuWin");
-		boardState.update("finished");
+		eventBus.update("cpuWin");
+		eventBus.update("finished");
 		}
 		return 2;
 
 	} else if (this.isTie(boardArray)) {
 		if(isUpdating){
-		boardState.update("tie");
-		boardState.update("finished");
+		eventBus.update("tie");
+		eventBus.update("finished");
 		}
 		return 0;
 	}
@@ -430,9 +501,9 @@ const decisionEngine = {
     	move = this.getPriorityMove();
     }
     if (attack) {
-      boardState.update("cpuCanWin");
+      eventBus.update("cpuCanWin");
     } else if (defense) {
-      boardState.update("playerCanWin");
+      eventBus.update("playerCanWin");
     }
     
     await helperFunctions.delay(1000);
