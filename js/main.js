@@ -4,8 +4,8 @@ import { boardState } from './boardState.js';
 import { gameRules } from './gameRules.js';
 import { turnManager } from './turnManager.js';
 import { decisionEngine } from './aiEngine.js';
-import { difficultyManager } from './difficultyManager.js';
-import { themeManager } from './themeManager.js';
+import { difficultyManager } from './preferencesManager.js';
+import { themeManager } from './preferencesManager.js';
 import { scoreManager } from './scoreManager.js';
 import { helperFunctions } from './helperFunctions.js';
 
