@@ -2,11 +2,11 @@ import { ui, configHub, cellManager } from './ui.js';
 import { eventBus } from './eventBus.js';
 import { boardState } from './boardState.js';
 import { gameRules } from './gameRules.js';
-import { turnManager } from './managers/turnManager.js';
+import { turnManager } from './turnManager.js';
 import { decisionEngine } from './aiEngine.js';
-import { difficultyManager } from './managers/difficultyManager.js';
-import { themeManager } from './managers/themeManager.js';
-import { scoreManager } from './managers/scoreManager.js';
+import { difficultyManager } from './difficultyManager.js';
+import { themeManager } from './themeManager.js';
+import { scoreManager } from './scoreManager.js';
 import { helperFunctions } from './helperFunctions.js';
 
 const mainConfig = {
