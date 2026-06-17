@@ -1,5 +1,6 @@
 import { eventBus } from './eventBus.js';
 import { boardState } from './boardState.js';
+import { helperFunctions } from './helperFunctions.js';
 import { turnManager } from './turnManager.js';
 import { gameRules } from './gameRules.js';
 
@@ -104,6 +105,7 @@ export const cellManager = {
   createCell(index) {
     const cell = document.createElement('div');
     cell.classList.add('cell');
+    helperFunctions.applyTempClass(cell, "cell--fadein");
     cell.dataset.index = index;
 
     cell.addEventListener('click', this.handleCellClick.bind(this));
