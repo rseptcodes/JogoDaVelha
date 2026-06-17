@@ -249,7 +249,18 @@ h1 {
 	opacity: 0.3;
 	box-shadow: none;
 }
-
+.cell--fadein{
+	animation: cellFadein 0.4s ease-in-out;
+}
+@keyframes cellFadein {
+	from {
+		opacity: 0;
+		transform: translateY(10%);
+	} to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
 .controles {
     display: flex;
     gap: 10px;
@@ -288,11 +299,6 @@ h1 {
     letter-spacing: 2px;
     transition: background-color 0.2s;
 }
-/* =========================================
-   OVERLAY E MENU FLUTUANTE (MODAL)
-   ========================================= */
-
-/* Fundo escuro desfocado que cobre a tela toda */
 .settings-overlay {
     position: fixed;
     inset: 0;
@@ -302,14 +308,11 @@ h1 {
     justify-content: center;
     align-items: center;
     z-index: 999;
-    
-    /* Transições suaves para aparecer/sumir */
     opacity: 1;
     visibility: visible;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* O Segredo do Hidden: esconde e desativa os cliques */
 .settings-overlay.hidden {
     opacity: 0;
     visibility: hidden;
@@ -356,7 +359,6 @@ h1 {
     display: flex;
     gap: 10px;
 }
-
 .sr-only {
     position: absolute;
     width: 1px;
@@ -367,7 +369,6 @@ h1 {
     clip: rect(0, 0, 0, 0);
     border: 0;
 }
-
 .option-card {
     flex: 1;
     background: color-mix(in srgb, var(--sc-color) 40%, transparent);
@@ -385,12 +386,10 @@ h1 {
     transition: all 0.2s ease;
     -webkit-tap-highlight-color: transparent;
 }
-
 .option-card:hover {
     background: var(--sc-color-hover);
     transform: translateY(-2px);
 }
-
 input:checked + .option-card {
     background: var(--accent-color);
     border-color: var(--txt-color);
@@ -398,22 +397,18 @@ input:checked + .option-card {
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }
-
 .card-title {
     font-weight: 600;
     font-size: 1rem;
 }
-
 .card-subtitle {
     font-size: 0.75rem;
     color: var(--txt-muted);
     transition: color 0.2s ease;
 }
-
 input:checked + .option-card .card-subtitle {
     color: rgba(255, 255, 255, 0.8);
 }
-
 #close-settings {
     margin-top: 10px;
 }
