@@ -12,7 +12,8 @@ The CPU supports two distinct strategic systems: a heuristic "decisionEngine" fo
 
 ## 🎬 Demo
 
-![Tic-Tac-Toe Demo](./assets.demo.gif)
+![Tic-Tac-Toe Demo](./assets/demo.gif)
+> «The demo shows the Minimax AI playing against the player, evaluating possible moves and either winning or forcing a draw.»
 
 ## ✨ Features
 
